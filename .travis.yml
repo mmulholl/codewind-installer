@@ -1,0 +1,46 @@
+language: go
+
+go:
+- "1.12.5"
+
+before_install:
+  - export GOBIN="$GOPATH/bin"
+  - mkdir -p $GOBIN
+  # change directory structure from org/repo to just repo
+  - cd ../..
+  - export REPO_NAME=$(basename $TRAVIS_REPO_SLUG)
+  - mv -v $TRAVIS_REPO_SLUG $REPO_NAME
+  - cd $REPO_NAME
+  - pwd
+  # install dep
+  - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+
+# Setting install to something truthy causes Travis to skip its default install, so we can use our own.
+install:
+  - dep ensure -v
+
+script:
+  - pwd
+  - echo "TRAVIS_REPO_SLUG=$TRAVIS_REPO_SLUG"
+  - echo "REPO_NAME=${REPO_NAME}"
+  - export GOARCH=amd64
+  - export product_name="codewind-installer"
+  - GOOS=darwin go build -o ${product_name}-macos
+  - GOOS=windows go build -o ${product_name}-win.exe
+  - GOOS=linux go build -o ${product_name}-linux
+  - chmod -v +x ${product_name}-*
+
+after_success:
+  # move binaries into a dir and zip it
+  - mkdir ${product_name}
+  - mv -v ${product_name}-* ${product_name}/
+  # artifact_name tells deploy.sh what file to upload
+  - export artifact_name="${product_name}.zip"
+  - zip -r $artifact_name ${product_name}
+  - travis-scripts/deploy.sh
+
+notifications:
+  email:
+    # recipients:
+    on_success: change
+    on_failure: change
