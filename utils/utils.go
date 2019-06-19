@@ -27,9 +27,8 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/term"
+	"github.com/mmulholl/codewind-installer/errors"
 	"github.com/moby/moby/client"
-	"github.ibm.com/codewind-installer/errors"
-	"gopkg.in/yaml.v3"
 )
 
 var debug, _ = strconv.ParseBool(os.Getenv("DEBUG"))
@@ -130,8 +129,8 @@ func WriteToComposeFile(tempFilePath string) bool {
 func DockerCompose() {
 
 	// Set env variables for the docker compose file
-	home, err := os.UserHomeDir()
-	errors.CheckErr(err, 205, "Failed to get home dir")
+	home := os.Getenv("HOME")
+	fmt.Println(home)
 
 	const GOARCH string = runtime.GOARCH
 	const GOOS string = runtime.GOOS

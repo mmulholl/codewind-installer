@@ -1,8 +1,8 @@
 #!groovy​
 
 pipeline {
-	
-		agent {
+
+	agent {
 		kubernetes {
       		label 'go-pod'
 			yaml """
@@ -11,21 +11,17 @@ kind: Pod
 spec:
   containers:
   - name: go
-    image: golang:1.11-alpine3.9
+    image: golang:1.11-stretch
     tty: true
     command:
     - cat
 """
     	}
-
 	}
-//	agent  {
-//		docker { image 'golang:1.12.5' }
-//	}
 
-//   	tools {
-//		   go 'go1.12.5'
-//	}
+	tools {
+		git 'git'
+	} 
 
     options {
         skipStagesAfterUnstable()
@@ -38,49 +34,67 @@ spec:
 	}
 
 	stages {
+		
 		stage ('preBuild') {
 			steps {
-				script {
+				container('go') {
 					sh 'echo "starting preInstall.....: GOPATH=$GOPATH"'
 					sh '''
 						# add the base directory to the gopath
 						DEFAULT_CODE_DIRECTORY=$PWD
 						cd ../..
 						export GOPATH=$GOPATH:$(pwd)
+						# create a new directory to store the code for go compile 
 						if [ -d $CODE_DIRECTORY_FOR_GO ]; then
 							rm -rf $CODE_DIRECTORY_FOR_GO
 						fi
 						mkdir -p $CODE_DIRECTORY_FOR_GO
 						cd $CODE_DIRECTORY_FOR_GO
+						# copy the code into the new directory for go compile
 						cp -r $DEFAULT_CODE_DIRECTORY/* .	
 						echo $DEFAULT_CODE_DIRECTORY >> $DEFAULT_WORKSPACE_DIR_FILE
-						# get all of of the go dependences
-						curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-						dep ensure -v
-						echo "Building in directory $(pwd)"
-						'''
-				}
-			}
-		}
 
-		stage('Build') {
+						# get dep and run it
+						wget -O - https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+						dep ensure
 
-			steps {
-				script {
-					sh '''
-						# add the base directory to the gopath
-						cd ../..
-						export GOPATH=$GOPATH:$(pwd)
-						cd $CODE_DIRECTORY_FOR_GO
+						# now compile the code
+						export HOME=$JENKINS_HOME
+						export GOCACHE="off"
+						export GOARCH=amd64
 						GOOS=darwin go build -o ${PRODUCT_NAME}-macos
   						GOOS=windows go build -o ${PRODUCT_NAME}-win.exe
   						GOOS=linux go build -o ${PRODUCT_NAME}-linux
   						chmod -v +x ${PRODUCT_NAME}-*
-					'''
 
-		    	}
+					'''
+				}
 			}
 		}
+
+//		stage('Build') {
+//			steps {
+//				container('go') {
+//					sh '''
+//						# add the base directory to the gopath
+//						cd ../..
+//						export GOPATH=$GOPATH:$(pwd)
+//						echo "HOME=$HOME"
+//						echo "JENKINS_HOME=$JENKINS_HOME"
+//						export HOME=$JENKINS_HOME
+//						echo "GOCACHE=$GOCACHE"
+//						go env GOCACHE
+//						export GOCACHE="off"
+//						go env GOCACHE
+//						cd $CODE_DIRECTORY_FOR_GO
+//						GOOS=darwin go build -o ${PRODUCT_NAME}-macos
+//						GOOS=windows go build -o ${PRODUCT_NAME}-win.exe
+//  					GOOS=linux go build -o ${PRODUCT_NAME}-linux
+//  					chmod -v +x ${PRODUCT_NAME}-*
+//					'''
+//				}
+//			}
+//		}
 		
 		stage('Test') {
             steps {
@@ -89,8 +103,7 @@ spec:
         }
         
         stage('Upload') {
- 
-           steps {
+          steps {
 				script {
 					sh '''
 						cd ../../$CODE_DIRECTORY_FOR_GO
@@ -111,10 +124,8 @@ spec:
 
 					//zip archive: true,  dir: 'codewind-installer', glob: ' ', zipFile: 'codewind-installer.zip'
                     //archiveArtifacts artifacts: 'codewind-installer.zip', fingerprint: true
-
-				}
-
-		   }
+				}		 
+			}
         }
 	}
 	
