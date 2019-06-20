@@ -2,12 +2,31 @@
 
 
 [[projects]]
+  branch = "master"
+  digest = "1:6da51e5ec493ad2b44cb04129e2d0a068c8fb9bd6cb5739d199573558696bb94"
+  name = "github.com/Azure/go-ansiterm"
+  packages = [
+    ".",
+    "winterm",
+  ]
+  pruneopts = "UT"
+  revision = "d6e3b3328b783f23731bc4d058875b0371ff8109"
+
+[[projects]]
   digest = "1:f9ae348e1f793dcf9ed930ed47136a67343dbd6809c5c91391322267f4476892"
   name = "github.com/Microsoft/go-winio"
   packages = ["."]
   pruneopts = "UT"
   revision = "1a8911d1ed007260465c3bfbbc785ac6915a0bb8"
   version = "v0.4.12"
+
+[[projects]]
+  digest = "1:04457f9f6f3ffc5fea48e71d62f2ca256637dee0a04d710288e27e05c8b41976"
+  name = "github.com/Sirupsen/logrus"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "839c75faf7f98a33d445d181f3018b5c3409a45e"
+  version = "v1.4.2"
 
 [[projects]]
   digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
@@ -29,7 +48,7 @@
   version = "v2.7.1"
 
 [[projects]]
-  digest = "1:1c58bebf175e3c51fbed39f60dfc1cbea68df7b3a8062678661a30b68ee5fbc1"
+  digest = "1:096c02ecb59ad7cba169748105b8000620e1fc4648c106e4b8b1f032bedf9269"
   name = "github.com/docker/docker"
   packages = [
     "api/types",
@@ -46,6 +65,10 @@
     "api/types/time",
     "api/types/versions",
     "api/types/volume",
+    "pkg/jsonlog",
+    "pkg/jsonmessage",
+    "pkg/term",
+    "pkg/term/windows",
     "pkg/tlsconfig",
   ]
   pruneopts = "UT"
@@ -71,6 +94,14 @@
   pruneopts = "UT"
   revision = "519db1ee28dcc9fd2474ae59fca29a810482bfb1"
   version = "v0.4.0"
+
+[[projects]]
+  digest = "1:31e761d97c76151dde79e9d28964a812c46efc5baee4085b86f68f0c654450de"
+  name = "github.com/konsorten/go-windows-terminal-sequences"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "f55edac94c9bbba5d6182a4be46d86a2c9b5b50e"
+  version = "v1.0.2"
 
 [[projects]]
   digest = "1:4b17b21e0f462ee50ca92f81cadabf531f7c4a2d3590cc55b0a9d081059ca61e"
@@ -135,9 +166,12 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:1fa5ea43bbafccb9bc8a02ab2fa85eefc1eda9c9b14fe0cefa4d7baf505c9469"
+  digest = "1:38fc62caae4ecfec54e6047306fdf39210358fefce36fd9ed8e4d008fe150238"
   name = "golang.org/x/sys"
-  packages = ["windows"]
+  packages = [
+    "unix",
+    "windows",
+  ]
   pruneopts = "UT"
   revision = "d89cdac9e8725f2aefce25fcbfef41134c9ad412"
 
@@ -154,6 +188,8 @@
   analyzer-version = 1
   input-imports = [
     "github.com/docker/docker/api/types",
+    "github.com/docker/docker/pkg/jsonmessage",
+    "github.com/docker/docker/pkg/term",
     "github.com/moby/moby/client",
     "github.com/stretchr/testify/assert",
     "github.com/urfave/cli",

@@ -97,11 +97,12 @@ func TestWriteToComposeFileFail(t *testing.T) {
 
 func TestDeleteTempFile(t *testing.T) {
 	os.Create("TestFile.yaml")
-	removeFile := DeleteTempFile("TestFile.yaml")
+	removeFile, _ := DeleteTempFile("TestFile.yaml")
 	assert.Equal(t, removeFile, true, "should return true: should delete the temp file")
 }
 
 func TestDeleteTempFileFail(t *testing.T) {
-	removeFile := DeleteTempFile("TestFile.yaml")
-	assert.Equal(t, removeFile, false, "should return false: should fail to delete a file that doesn't exist")
+	errString := "stat TestFile.yaml: no such file or directory"
+	_, err := DeleteTempFile("TestFile.yaml")
+	assert.EqualError(t, err, errString)
 }

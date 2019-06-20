@@ -11,17 +11,15 @@
 package main
 
 import (
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"strings"
 
-	"github.com/mmulholl/codewind-installer/utils"
-	"github.com/moby/moby/client"
+	"github.ibm.com/codewind-installer/errors"
+	"github.ibm.com/codewind-installer/utils"
 
 	"github.com/docker/docker/api/types"
 
@@ -57,9 +55,8 @@ func commands() {
 					Password: os.Getenv("PASS"),
 				}
 				encodedJSON, err := json.Marshal(authConfig)
-				if err != nil {
-					log.Fatal(err)
-				}
+				errors.CheckErr(err, 106, "")
+
 				authStr := base64.URLEncoding.EncodeToString(encodedJSON)
 
 				codewindImage := "sys-mcs-docker-local.artifactory.swg-devops.com/codewind-pfe-amd64"
@@ -157,35 +154,22 @@ func commands() {
 			Name:  "stop",
 			Usage: "Stop the running Codewind containers",
 			Action: func(c *cli.Context) error {
+				containerArr := [2]string{}
+				containerArr[0] = "codewind-pfe"
+				containerArr[1] = "codewind-performance"
 
-				ctx := context.Background()
-				cli, err := client.NewEnvClient()
-				if err != nil {
-					log.Fatal(err)
-				}
+				containers := utils.GetContainerList()
 
-				containers, err := cli.ContainerList(ctx, types.ContainerListOptions{})
-				if err != nil {
-					log.Fatal(err)
-				}
-				fmt.Println("Only stopping Codewind containers")
+				fmt.Println("Only stopping Codewind containers. To stop project containers, please use 'stop-all'")
+
 				for _, container := range containers {
-
-					if strings.Contains(container.Image, "codewind") {
-						fmt.Println("Stopping container ", container.Names, "... ")
-
-						// Stop the running container
-						if err := cli.ContainerStop(ctx, container.ID, nil); err != nil {
-							log.Fatal(err)
-						}
-
-						// Remove the container so it isnt lingering in the background
-						if err := cli.ContainerRemove(ctx, container.ID, types.ContainerRemoveOptions{}); err != nil {
-							log.Fatal(err)
+					for _, key := range containerArr {
+						if strings.HasPrefix(container.Image, key) {
+							fmt.Println("Stopping container ", container.Names, "... ")
+							utils.StopContainer(container)
 						}
 					}
 				}
-
 				return nil
 			},
 		},
@@ -194,85 +178,67 @@ func commands() {
 			Name:  "stop-all",
 			Usage: "Stop all of the Codewind and project containers",
 			Action: func(c *cli.Context) error {
+				containerArr := [3]string{}
+				containerArr[0] = "codewind-pfe"
+				containerArr[1] = "codewind-performance"
+				containerArr[2] = "cw-"
 
-				ctx := context.Background()
-				cli, err := client.NewEnvClient()
-				if err != nil {
-					log.Fatal(err)
-				}
+				containers := utils.GetContainerList()
 
-				containers, err := cli.ContainerList(ctx, types.ContainerListOptions{})
-				if err != nil {
-					log.Fatal(err)
-				}
 				fmt.Println("Stopping Codewind and Project containers")
 				for _, container := range containers {
-
-					if strings.Contains(container.Image, "codewind") || strings.Contains(container.Image, "mc-") {
-						fmt.Println("Stopping container ", container.Names, "... ")
-
-						// Stop the running container
-						if err := cli.ContainerStop(ctx, container.ID, nil); err != nil {
-							log.Fatal(err)
-						}
-
-						// Remove the container so it isnt lingering in the background
-						if err := cli.ContainerRemove(ctx, container.ID, types.ContainerRemoveOptions{}); err != nil {
-							log.Fatal(err)
+					for _, key := range containerArr {
+						if strings.HasPrefix(container.Image, key) {
+							fmt.Println("Stopping container ", container.Names, "... ")
+							utils.StopContainer(container)
 						}
 					}
-
 				}
-
 				return nil
 			},
 		},
 
 		{
 			Name:  "remove",
-			Usage: "Remove Codewind/Project docker images and the microclimate network",
+			Usage: "Remove Codewind/Project docker images and the codewind network",
 			Action: func(c *cli.Context) error {
+				imageArr := [7]string{}
+				imageArr[0] = "sys-mcs-docker-local.artifactory.swg-devops.com/codewind-pfe"
+				imageArr[1] = "sys-mcs-docker-local.artifactory.swg-devops.com/codewind-performance"
+				imageArr[2] = "sys-mcs-docker-local.artifactory.swg-devops.com/codewind-initialize"
+				imageArr[3] = "ibmcom/codewind-pfe"
+				imageArr[4] = "ibmcom/codewind-performance"
+				imageArr[5] = "ibmcom/codewind-initialize"
+				imageArr[6] = "cw-"
+				networkName := "codewind"
 
-				ctx := context.Background()
-				cli, err := client.NewEnvClient()
-				if err != nil {
-					log.Fatal(err)
-				}
+				images := utils.GetImageList()
 
-				images, err := cli.ImageList(ctx, types.ImageListOptions{})
-				if err != nil {
-					log.Fatal(err)
-				}
 				fmt.Println("Removing Codewind docker images..")
-				for _, image := range images {
 
+				for _, image := range images {
 					imageRepo := strings.Join(image.RepoDigests, " ")
 					imageTags := strings.Join(image.RepoTags, " ")
-
-					if strings.Contains(imageRepo, "sys-mcs-docker-local.") || strings.Contains(imageRepo, "ibmcom/codewind") || strings.Contains(imageTags, "mc-") {
-						fmt.Println("Deleting Image ", image.RepoTags[0], "... ")
-						utils.RemoveImage(image.ID)
-					}
-				}
-
-				networks, err := cli.NetworkList(ctx, types.NetworkListOptions{})
-				if err != nil {
-					log.Fatal(err)
-				}
-
-				for _, network := range networks {
-
-					if strings.Contains(network.Name, "microclimate") {
-						fmt.Print("Removing docker network: ", network.Name, "... ")
-
-						// Remove the network
-						if err := cli.NetworkRemove(ctx, network.ID); err != nil {
-							fmt.Println("Cannot remove " + network.Name + ". Use 'stop-all' flag to ensure all containers have been terminated")
-							log.Fatal(err)
+					for _, key := range imageArr {
+						if strings.HasPrefix(imageRepo, key) || strings.HasPrefix(imageTags, key) {
+							if len(image.RepoTags) > 0 {
+								fmt.Println("Deleting Image ", image.RepoTags[0], "... ")
+							} else {
+								fmt.Println("Deleting Image ", image.ID, "... ")
+							}
+							utils.RemoveImage(image.ID)
 						}
 					}
 				}
 
+				networks := utils.GetNetworkList()
+
+				for _, network := range networks {
+					if strings.Contains(network.Name, networkName) {
+						fmt.Print("Removing docker network: ", network.Name, "... ")
+						utils.RemoveNetwork(network)
+					}
+				}
 				return nil
 			},
 		},
@@ -280,7 +246,5 @@ func commands() {
 
 	// Start application
 	err := app.Run(os.Args)
-	if err != nil {
-		log.Fatal(err)
-	}
+	errors.CheckErr(err, 300, "")
 }

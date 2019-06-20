@@ -16,7 +16,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -26,7 +25,10 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/pkg/jsonmessage"
+	"github.com/docker/docker/pkg/term"
 	"github.com/moby/moby/client"
+	"github.ibm.com/codewind-installer/errors"
 	"gopkg.in/yaml.v3"
 )
 
@@ -40,16 +42,16 @@ services:
   image: ${REPOSITORY}codewind-pfe${PLATFORM}:${TAG}
   container_name: codewind-pfe
   user: root
-  environment: ["HOST_WORKSPACE_DIRECTORY=${WORKSPACE_DIRECTORY}","CONTAINER_WORKSPACE_DIRECTORY=/microclimate-workspace","HOST_OS=${HOST_OS}","TELEMETRY=${TELEMETRY}","MICROCLIMATE_VERSION=${TAG}","PERFORMANCE_CONTAINER=codewind-performance${PLATFORM}:${TAG}"]
+  environment: ["HOST_WORKSPACE_DIRECTORY=${WORKSPACE_DIRECTORY}","CONTAINER_WORKSPACE_DIRECTORY=/codewind-workspace","HOST_OS=${HOST_OS}","CODEWIND_VERSION=${TAG}","PERFORMANCE_CONTAINER=codewind-performance${PLATFORM}:${TAG}"]
   depends_on: [codewind-performance]
   ports: ["127.0.0.1:9090:9090"]
-  volumes: ["/var/run/docker.sock:/var/run/docker.sock","${WORKSPACE_DIRECTORY}:/microclimate-workspace"]
+  volumes: ["/var/run/docker.sock:/var/run/docker.sock","${WORKSPACE_DIRECTORY}:/codewind-workspace"]
   networks: [network]
  codewind-performance:
   image: codewind-performance${PLATFORM}:${TAG}
   ports: ["127.0.0.1:9095:9095"]
   container_name: codewind-performance
-  volumes: ["/var/run/docker.sock:/var/run/docker.sock","${WORKSPACE_DIRECTORY}:/microclimate-workspace"]
+  volumes: ["/var/run/docker.sock:/var/run/docker.sock","${WORKSPACE_DIRECTORY}:/codewind-workspace"]
   networks: [network]
 networks:
   network:
@@ -90,9 +92,7 @@ func CreateTempFile(tempFilePath string) bool {
 	// create file if not exists
 	if os.IsNotExist(err) {
 		var file, err = os.Create(tempFilePath)
-		if err != nil {
-			log.Fatal(err)
-		}
+		errors.CheckErr(err, 201, "")
 		defer file.Close()
 
 		fmt.Println("==> created file", tempFilePath)
@@ -110,14 +110,10 @@ func WriteToComposeFile(tempFilePath string) bool {
 	dataStruct := Compose{}
 
 	unmarshDataErr := yaml.Unmarshal([]byte(data), &dataStruct)
-	if unmarshDataErr != nil {
-		log.Fatalf("error: %v", unmarshDataErr)
-	}
+	errors.CheckErr(unmarshDataErr, 202, "")
 
 	marshalledData, err := yaml.Marshal(&dataStruct)
-	if err != nil {
-		log.Fatalf("error: %v", err)
-	}
+	errors.CheckErr(err, 203, "")
 
 	if debug == true {
 		fmt.Printf("==> "+tempFilePath+" structure is: \n%s\n\n", string(marshalledData))
@@ -126,9 +122,7 @@ func WriteToComposeFile(tempFilePath string) bool {
 	}
 
 	err = ioutil.WriteFile(tempFilePath, marshalledData, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
+	errors.CheckErr(err, 204, "")
 	return true
 }
 
@@ -137,9 +131,7 @@ func DockerCompose() {
 
 	// Set env variables for the docker compose file
 	home, err := os.UserHomeDir()
-	if err != nil {
-		fmt.Println("failed to get home dir")
-	}
+	errors.CheckErr(err, 205, "Failed to get home dir")
 
 	const GOARCH string = runtime.GOARCH
 	const GOOS string = runtime.GOOS
@@ -155,78 +147,70 @@ func DockerCompose() {
 	os.Setenv("REPOSITORY", "")
 	os.Setenv("TAG", "latest")
 	if GOOS == "windows" {
-		os.Setenv("WORKSPACE_DIRECTORY", "C:\\microclimate-workspace")
+		os.Setenv("WORKSPACE_DIRECTORY", "C:\\codewind-workspace")
 	} else {
-		os.Setenv("WORKSPACE_DIRECTORY", home+"/microclimate-workspace")
+		os.Setenv("WORKSPACE_DIRECTORY", home+"/codewind-workspace")
 	}
 	os.Setenv("HOST_OS", GOOS)
-	os.Setenv("TELEMETRY", "")
-	os.Setenv("COMPOSE_PROJECT_NAME", "microclimate")
+	os.Setenv("COMPOSE_PROJECT_NAME", "codewind")
 
 	cmd := exec.Command("docker-compose", "-f", "installer-docker-compose.yaml", "up", "-d")
 	output := new(bytes.Buffer)
 	cmd.Stdout = output
 	cmd.Stderr = output
 	if err := cmd.Start(); err != nil { // after 'Start' the program is continued and script is executing in background
-		fmt.Printf("Failed to start " + err.Error())
-		os.Exit(1)
+		DeleteTempFile("installer-docker-compose.yaml")
+		errors.CheckErr(err, 101, "Is docker-compose installed?")
 	}
 	fmt.Printf("Please wait whilst containers initialize... %s \n", output.String())
 	cmd.Wait()
 	fmt.Printf(output.String()) // Wait to finish execution, so we can read all output
+
+	if strings.Contains(output.String(), "ERROR") {
+		DeleteTempFile("installer-docker-compose.yaml")
+		os.Exit(1)
+	}
 }
 
 // DeleteTempFile once the the Codewind environment has been created
-func DeleteTempFile(tempFilePath string) bool {
+func DeleteTempFile(tempFilePath string) (boolean bool, err error) {
 
-	var _, err = os.Stat(tempFilePath)
+	var _, file = os.Stat(tempFilePath)
 
-	if os.IsNotExist(err) {
-		return false
+	if os.IsNotExist(file) {
+		errors.CheckErr(file, 206, "No files to delete")
+		return false, file
 	}
 
-	err = os.Remove(tempFilePath)
-	if err != nil {
-		fmt.Println("No more files to delete")
-	} else {
-		fmt.Println("==> finished deleting file " + tempFilePath)
-	}
-	return true
+	os.Remove(tempFilePath)
+	fmt.Println("==> finished deleting file " + tempFilePath)
+	return true, nil
 }
 
 // PullImage - pull pfe/performance/initialize images from artifactory
 func PullImage(image string, auth string) {
 	ctx := context.Background()
 	cli, err := client.NewEnvClient()
-	if err != nil {
-		log.Fatal(err)
-	}
+	errors.CheckErr(err, 200, "")
 
+	var codewindOut io.ReadCloser
 	if auth == "" {
-		codewindOut, err := cli.ImagePull(ctx, image, types.ImagePullOptions{})
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer codewindOut.Close()
-		io.Copy(os.Stdout, codewindOut)
+		codewindOut, err = cli.ImagePull(ctx, image, types.ImagePullOptions{})
 	} else {
-		codewindOut, err := cli.ImagePull(ctx, image, types.ImagePullOptions{RegistryAuth: auth})
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer codewindOut.Close()
-		io.Copy(os.Stdout, codewindOut)
+		codewindOut, err = cli.ImagePull(ctx, image, types.ImagePullOptions{RegistryAuth: auth})
 	}
 
+	errors.CheckErr(err, 100, "")
+
+	defer codewindOut.Close()
+	termFd, isTerm := term.GetFdInfo(os.Stderr)
+	jsonmessage.DisplayJSONMessagesStream(codewindOut, os.Stderr, termFd, isTerm, nil)
 }
 
 // TagImage - locally retag the downloaded images
 func TagImage(source, tag string) {
 	out, err := exec.Command("docker", "tag", source, tag).Output()
-	if err != nil {
-		fmt.Println("Image Tagging Failed")
-		fmt.Printf("%s", err)
-	}
+	errors.CheckErr(err, 102, "Image Tagging Failed")
 
 	output := string(out[:])
 	fmt.Println(output)
@@ -260,20 +244,18 @@ func PingHealth(healthEndpoint string) bool {
 // CheckContainerStatus of Codewind running/stopped
 func CheckContainerStatus() bool {
 	var containerStatus = false
-	ctx := context.Background()
-	cli, err := client.NewEnvClient()
-	if err != nil {
-		log.Fatal(err)
-	}
+	containerArr := [2]string{}
+	containerArr[0] = "codewind-pfe"
+	containerArr[1] = "codewind-performance"
 
-	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{})
-	if err != nil {
-		log.Fatal(err)
-	}
+	containers := GetContainerList()
+
 	containerCount := 0
 	for _, container := range containers {
-		if strings.Contains(container.Image, "codewind") {
-			containerCount++
+		for _, key := range containerArr {
+			if strings.HasPrefix(container.Image, key) {
+				containerCount++
+			}
 		}
 	}
 	if containerCount >= 2 {
@@ -287,25 +269,26 @@ func CheckContainerStatus() bool {
 // CheckImageStatus of Codewind installed/uninstalled
 func CheckImageStatus() bool {
 	var imageStatus = false
-	ctx := context.Background()
-	cli, err := client.NewEnvClient()
-	if err != nil {
-		log.Fatal(err)
-	}
+	imageArr := [6]string{}
+	imageArr[0] = "sys-mcs-docker-local.artifactory.swg-devops.com/codewind-pfe"
+	imageArr[1] = "sys-mcs-docker-local.artifactory.swg-devops.com/codewind-performance"
+	imageArr[2] = "sys-mcs-docker-local.artifactory.swg-devops.com/codewind-initialize"
+	imageArr[3] = "ibmcom/codewind-pfe"
+	imageArr[4] = "ibmcom/codewind-performance"
+	imageArr[5] = "ibmcom/codewind-initialize"
 
-	// Check if the Codewind images are available
-	images, err := cli.ImageList(ctx, types.ImageListOptions{})
-	if err != nil {
-		log.Fatal(err)
-	}
+	images := GetImageList()
+
 	imageCount := 0
 	for _, image := range images {
 		imageRepo := strings.Join(image.RepoDigests, " ")
-		if strings.Contains(imageRepo, "codewind") {
-			imageCount++
+		for _, key := range imageArr {
+			if strings.HasPrefix(imageRepo, key) {
+				imageCount++
+			}
 		}
 	}
-	if imageCount == 3 {
+	if imageCount >= 3 {
 		imageStatus = true
 	}
 
@@ -319,7 +302,69 @@ func RemoveImage(imageID string) {
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	err := cmd.Run()
-	if err != nil {
-		log.Fatal("Please stop all running containers before trying to remove Codewind")
+	errors.CheckErr(err, 105, "Failed to remove image - Please make sure all containers are stopped")
+}
+
+// GetContainerList from docker
+func GetContainerList() []types.Container {
+	ctx := context.Background()
+	cli, err := client.NewEnvClient()
+	errors.CheckErr(err, 200, "")
+
+	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{})
+	errors.CheckErr(err, 107, "")
+
+	return containers
+}
+
+// GetImageList from docker
+func GetImageList() []types.ImageSummary {
+	ctx := context.Background()
+	cli, err := client.NewEnvClient()
+	errors.CheckErr(err, 200, "")
+
+	images, err := cli.ImageList(ctx, types.ImageListOptions{})
+	errors.CheckErr(err, 109, "")
+
+	return images
+}
+
+// GetNetworkList from docker
+func GetNetworkList() []types.NetworkResource {
+	ctx := context.Background()
+	cli, err := client.NewEnvClient()
+	errors.CheckErr(err, 200, "")
+
+	networks, err := cli.NetworkList(ctx, types.NetworkListOptions{})
+	errors.CheckErr(err, 110, "")
+
+	return networks
+}
+
+// StopContainer will stop only codewind containers
+func StopContainer(container types.Container) {
+	ctx := context.Background()
+	cli, err := client.NewEnvClient()
+	errors.CheckErr(err, 200, "")
+
+	// Stop the running container
+	if err := cli.ContainerStop(ctx, container.ID, nil); err != nil {
+		errors.CheckErr(err, 108, "")
+	}
+
+	// Remove the container so it isnt lingering in the background
+	if err := cli.ContainerRemove(ctx, container.ID, types.ContainerRemoveOptions{}); err != nil {
+		errors.CheckErr(err, 108, "")
+	}
+}
+
+// RemoveNetwork will remove docker network
+func RemoveNetwork(network types.NetworkResource) {
+	ctx := context.Background()
+	cli, err := client.NewEnvClient()
+	errors.CheckErr(err, 200, "")
+
+	if err := cli.NetworkRemove(ctx, network.ID); err != nil {
+		errors.CheckErr(err, 111, "Cannot remove "+network.Name+". Use 'stop-all' flag to ensure all containers have been terminated")
 	}
 }
