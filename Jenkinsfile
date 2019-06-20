@@ -136,7 +136,7 @@ spec:
            steps {
                sshagent ( ['projects-storage.eclipse.org-bot-ssh']) {
                  println("Deploying codewind-installer to downoad area...")
-		 unstash ''WIN_SIGNED'
+		 unstash 'WIN_SIGNED'
                  sh '''
 			WORKSPACE=$PWD
 			ls -la ${WORKSPACE}/*
