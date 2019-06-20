@@ -136,7 +136,7 @@ spec:
                  sh '''
 			WORKSPACE=$PWD
 			ls -la ${WORKSPACE}/codewind-installer/*
-                    ssh genie.codewind@projects-storage.eclipse.org rm -rf /home/data/httpd/download.eclipse.org/codewind/codewind-installer/snapshots
+                    # ssh genie.codewind@projects-storage.eclipse.org rm -rf /home/data/httpd/download.eclipse.org/codewind/codewind-installer/snapshots
                     ssh genie.codewind@projects-storage.eclipse.org mkdir -p /home/data/httpd/download.eclipse.org/codewind/codewind-installer/snapshots
                      scp -r ${WORKSPACE}/codewind-installer/* genie.codewind@projects-storage.eclipse.org:/home/data/httpd/download.eclipse.org/codewind/codewind-installer/snapshots
                  '''
