@@ -129,6 +129,7 @@ spec:
 			}
         }
 	stage('Deploy') {
+	agent any	
            steps {
                sshagent ( ['projects-storage.eclipse.org-bot-ssh']) {
                  println("Deploying codewind-installer to downoad area...")
