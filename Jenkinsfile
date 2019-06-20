@@ -121,8 +121,6 @@ spec:
 						DEFAULT_WORKSPACE_DIR=$(cat $DEFAULT_WORKSPACE_DIR_FILE)
 						cp -r $PRODUCT_NAME $DEFAULT_WORKSPACE_DIR 
 						
-						stash includes: '$PRODUCT_NAME/${PRODUCT_NAME}-win-signed.exe', name: 'WIN_SIGNED'
-						echo "zip up the images - does not work!"  
 					'''
 						stash includes: '$PRODUCT_NAME/${PRODUCT_NAME}-win-signed.exe', name: 'WIN_SIGNED'
 
