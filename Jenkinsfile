@@ -53,9 +53,12 @@ spec:
 						# copy the code into the new directory for go compile
 						cp -r $DEFAULT_CODE_DIRECTORY/* .	
 						echo $DEFAULT_CODE_DIRECTORY >> $DEFAULT_WORKSPACE_DIR_FILE
+						
+						ls -la
 
 						# get dep and run it
 						wget -O - https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+						dep status
 						dep ensure -v
 
 						# now compile the code
