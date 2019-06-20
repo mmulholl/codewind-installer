@@ -122,7 +122,9 @@ spec:
 						cp -r $PRODUCT_NAME $DEFAULT_WORKSPACE_DIR 
 						
 					'''
-						stash includes: '$PRODUCT_NAME/${PRODUCT_NAME}-win-signed.exe', name: 'WIN_SIGNED'
+					dir('${PRODUCT_NAME') {
+						stash includes: '**', name: 'EXECUTABLES'
+					}	
 
 					//zip archive: true,  dir: 'codewind-installer', glob: ' ', zipFile: 'codewind-installer.zip'
                     //archiveArtifacts artifacts: 'codewind-installer.zip', fingerprint: true
@@ -134,13 +136,21 @@ spec:
            steps {
                sshagent ( ['projects-storage.eclipse.org-bot-ssh']) {
                  println("Deploying codewind-installer to downoad area...")
-		 unstash 'WIN_SIGNED'
+		 sh '''
+		 	if [ -d $PRODUCT_NAME ]; then
+				rm -rf $PRODUCT_NAME
+			fi	
+		 	mkdir $PRODUCT_NAME
+		'''	
+		 dir ('${PRODUCT_NAME') {     
+		 	unstash 'EXECUTABLES'
+		 }	 
                  sh '''
 			WORKSPACE=$PWD
 			ls -la ${WORKSPACE}/*
-                    # ssh genie.codewind@projects-storage.eclipse.org rm -rf /home/data/httpd/download.eclipse.org/codewind/codewind-installer/snapshots
+                    ssh genie.codewind@projects-storage.eclipse.org rm -rf /home/data/httpd/download.eclipse.org/codewind/codewind-installer/snapshots
                     ssh genie.codewind@projects-storage.eclipse.org mkdir -p /home/data/httpd/download.eclipse.org/codewind/codewind-installer/snapshots
-                     scp -r ${WORKSPACE}/* genie.codewind@projects-storage.eclipse.org:/home/data/httpd/download.eclipse.org/codewind/codewind-installer/snapshots
+                     scp -r ${WORKSPACE}/${PRODUCT_NAME}/* genie.codewind@projects-storage.eclipse.org:/home/data/httpd/download.eclipse.org/codewind/codewind-installer/snapshots
                  '''
                }
            }
