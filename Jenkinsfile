@@ -56,7 +56,7 @@ spec:
 
 						# get dep and run it
 						wget -O - https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-						dep ensure
+						dep ensure -v
 
 						# now compile the code
 						export HOME=$JENKINS_HOME
