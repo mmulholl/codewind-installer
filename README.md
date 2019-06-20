@@ -4,20 +4,36 @@ Prebuilt binaries are available for download [on Artifactory](https://sys-mcs-do
 
 [![Build Status](https://travis.ibm.com/dev-ex/codewind-installer.svg?token=jLZpzPrJozeLHsb1tpsR&branch=master)](https://travis.ibm.com/dev-ex/codewind-installer)
 [![Eclipse License](https://img.shields.io/badge/license-Eclipse-brightgreen.svg)](https://github.ibm.com/dev-ex/tempest/blob/master/LICENSE)
+[![License](https://img.shields.io/badge/License-EPL%202.0-red.svg?label=license&logo=eclipse)](https://www.eclipse.org/legal/epl-2.0/)
 
 ## Downloading the release binary for MacOS
 1. Download the release binary file to a folder on your system.
 2. Use the `cd` command to go to the location of the downloaded file in the Terminal window.
 3. If the binary file has the extension `.dms`, remove the extension so that the file is named `mac-installer`.
-4. Enter the `chmod 775 installer` command to give yourself access rights to run the binary file on your system. 
+4. Enter the `chmod +x mac-installer` command to give yourself execution permissions for the binary.
 5. Export the environment variables for artifactory authentication with the following commands:
 ```
 $ export USER=<artifactory-username>
 $ export PASS=<artifactory-API-key>
 ```
-6. If you already have a `microclimate-workspace` with your projects in it, copy it into your `/Users/<username>` home directory. If you do not already have a workspace, the installer creates an empty workspace for you in this directory.
+6. If you already have a `codewind-workspace` with your projects in it, copy it into your `/Users/<username>` home directory. If you do not already have a workspace, the installer creates an empty workspace for you in this directory.
 7. Type `./mac-installer` in the Terminal window with the exported environment variables to run the installer.
 8. To run a command, enter `./mac-installer <command>`.
+
+## Downloading the release binary for Linux
+1. Download the release binary file to a folder on your system.
+2. Use the `cd` command to go to the location of the downloaded file in the Terminal window.
+3. If necessary, remove any file extensions so that the file is named `linux-installer`.
+4. Enter the `chmod +x linux-installer` command to give yourself execution permissions for the binary. 
+5. Export the environment variables for artifactory authentication with the following commands:
+```
+$ export USER=<artifactory-username>
+$ export PASS=<artifactory-API-key>
+```
+6. If you already have a `codewind-workspace` with your projects in it, copy the workspace into your `$HOME` home directory. If you do not already have a workspace, the installer creates an empty workspace for you in this directory.
+7. Install `docker-compose` with [Install Docker Compose](https://docs.docker.com/compose/install/).
+8. To run the installer, enter `./linux-installer` in the Terminal window with the exported environment variables.
+9. To run a command, enter `./linux-installer <command>`.
 
 ## Downloading the release binary for Windows
 1. Download the release binary file to a folder on your system.
@@ -25,12 +41,13 @@ $ export PASS=<artifactory-API-key>
 3. Ensure that the binary file has an `.exe` extension. If it doesn't, add the extension to the file name.
 4. Export the environment variables for artifactory authentication with the following commands:
 ```
-> $ENV:USER += <artifactory-username>
-> $ENV:PASS += <artifactory-API-key>
+> $ENV:USER += "<artifactory-username>"
+> $ENV:PASS += "<artifactory-API-key>"
 ```
-5. If you already have a `microclimate-workspace` with your projects in it, copy it into your `C:\` directory. If you do not already have a workspace, the installer creates an empty one for you in this directory.
-6. To get started and see the commands available, type the ` .\win-installer.exe` command in the command prompt with the exported environment variables.
-7. To run a command, enter ` .\win-installer.exe <command>`.
+5. Ensure your `C:\` drive has been shared with Docker Desktop for Windows. To check, go to settings -> shared drives -> make sure the `C:\` drive checkbox is ticked.
+6. If you already have a `codewind-workspace` with your projects in it, copy it into your `C:\` directory. If you do not already have a workspace, the installer creates an empty one for you in this directory.
+7. To get started and see the commands available, type the ` .\win-installer.exe` command in the command prompt with the exported environment variables.
+8. To run a command, enter ` .\win-installer.exe <command>`.
 
 ## Build and deploying locally on MacOS
 1. Ensure that you have a Go environment set up. If you don't yet have a Go environment, see [Install Go for NATS](https://nats.io/documentation/tutorials/go-install/).
@@ -41,25 +58,25 @@ $ brew upgrade dep
 ```
 3. Clone the `git clone git@github.ibm.com:dev-ex/codewind-installer.git` repo.
 4. Use the `cd` command to go into the project directory and install the vendor packages with the `dep ensure -v` command.
-5. Build the binary and give it a name with the `go build -o <binary-name>` command.
+5. Build the binary and give it a name with the `go build -o <binary-name>` command. To build a binary without the debug symbols use the command `go build -ldflags="-s -w" -o <binary-name>`.
 6. Export the environment variables for artifactory authentication with the following commands:
 ```
 $ export USER=<artifactory-username>
 $ export PASS=<artifactory-API-key>
 ```
-7. Copy your Microclimate workspace into your `/Users/<username>` home directory.
+7. Copy your codewind-workspace into your `/Users/<username>` home directory.
 8. Type `./<binary-name>` in the Terminal window with the exported environment varibles to run the installer.
 9. To run a command, enter `./<binary-name> <command>`.
 
 ## Creating a cross-platform binary
 1. Use the `go tool dist list` command to get a list of the possible `GOOS/ARCH` combinations available to build.
-2. Choose the `GOOS/ARCH` that you want to build for and then enter `GOOS=<OS> GOARCH=<ARCH> go build` to create the binary.
+2. Choose the `GOOS/ARCH` that you want to build for and then enter `GOOS=<OS> GOARCH=<ARCH> go build` to create the binary. To build a binary without the debug symbols use the command `GOOS=<OS> GOARCH=<ARCH> go build -ldflags="-s -w"`.
 
 ## Unit testing
 1. Clone this repository.
-2. `cd` into the test directory. `utils.go` tests are located `utils/utils_test.go`.
-3. To run all of the tests, in the Terminal window type the command `go test -v` and wait for them to finish.
-4. For any other unit tests, the same applies but the directory may change.
+2. Use the `cd` command to go to the test directory. The `utils.go` tests are located in the `utils/utils_test.go` file.
+3. To run the tests, type the `go test -v` command in the terminal window and wait for the tests to finish.
+4. For any other unit tests, the same steps apply, but the directory might change.
 
  ## Installing for Codewind on Kubernetes
 
@@ -69,7 +86,3 @@ See [Installing Eclipse Che on Kubernetes](https://github.ibm.com/dev-ex/che-doc
 Submit issues and contributions:
 1. [Submitting issues](https://github.com/eclipse/codewind/issues)
 2. [Contributing](CONTRIBUTING.md)
-
-## License
-See the following link for license information:
-[EPL 2.0](https://www.eclipse.org/legal/epl-2.0/)
