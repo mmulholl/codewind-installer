@@ -122,7 +122,7 @@ spec:
 						cp -r $PRODUCT_NAME $DEFAULT_WORKSPACE_DIR 
 						
 					'''
-					dir('${PRODUCT_NAME') {
+					dir('${PRODUCT_NAME}') {
 						stash includes: '**', name: 'EXECUTABLES'
 					}	
 
@@ -142,7 +142,7 @@ spec:
 			fi	
 		 	mkdir $PRODUCT_NAME
 		'''	
-		 dir ('${PRODUCT_NAME') {     
+		 dir ('${PRODUCT_NAME}') {     
 		 	unstash 'EXECUTABLES'
 		 }	 
                  sh '''
