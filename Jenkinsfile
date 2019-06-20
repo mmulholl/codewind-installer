@@ -29,7 +29,7 @@ spec:
 
 	environment {
   		PRODUCT_NAME = 'codewind-installer'
-		CODE_DIRECTORY_FOR_GO = 'src/codewind-installer'
+		CODE_DIRECTORY_FOR_GO = 'src/github.com/mmulholl/codewind-installer'
 		DEFAULT_WORKSPACE_DIR_FILE = 'temp_default_dir'
 	}
 
