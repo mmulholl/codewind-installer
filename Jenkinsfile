@@ -55,6 +55,8 @@ spec:
 						echo $DEFAULT_CODE_DIRECTORY >> $DEFAULT_WORKSPACE_DIR_FILE
 						
 						ls -la
+						
+						set
 
 						# get dep and run it
 						wget -O - https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
