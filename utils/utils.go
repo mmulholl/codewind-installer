@@ -29,6 +29,7 @@ import (
 	"github.com/docker/docker/pkg/term"
 	"github.com/mmulholl/codewind-installer/errors"
 	"github.com/moby/moby/client"
+	"gopkg.in/yaml.v3"
 )
 
 var debug, _ = strconv.ParseBool(os.Getenv("DEBUG"))
