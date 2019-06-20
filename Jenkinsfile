@@ -119,7 +119,7 @@ spec:
 						mkdir $PRODUCT_NAME
 						
 						# WINDOWS EXE: Submit Windows unsigned.exe and save signed output to signed.exe
-                        # curl -o $PRODUCT_NAME/${PRODUCT_NAME}-win-signed.exe  -F file=@${PRODUCT_NAME}-win.exe http://build.eclipse.org:31338/winsign.php
+                        			curl -o $PRODUCT_NAME/${PRODUCT_NAME}-win-signed.exe  -F file=@${PRODUCT_NAME}-win.exe http://build.eclipse.org:31338/winsign.php
 
   						mv -v $PRODUCT_NAME-* $PRODUCT_NAME/
 						DEFAULT_WORKSPACE_DIR=$(cat $DEFAULT_WORKSPACE_DIR_FILE)
